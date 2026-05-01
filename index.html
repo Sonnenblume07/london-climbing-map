@@ -1589,6 +1589,9 @@
       if (saved) {
         gymsData = JSON.parse(saved);
         renderMarkers();
+
+        // 检查是否需要提醒备份
+        checkBackupReminder();
       } else {
         // 从 gyms.json 加载初始数据
         fetch('gyms.json')
@@ -1601,6 +1604,22 @@
           .catch(err => {
             console.error('加载数据失败:', err);
           });
+      }
+    }
+
+    // 检查备份提醒
+    function checkBackupReminder() {
+      const lastBackup = localStorage.getItem('lastBackupTime');
+      const now = Date.now();
+
+      // 如果从未备份，或者超过7天未备份
+      if (!lastBackup || (now - parseInt(lastBackup)) > 7 * 24 * 60 * 60 * 1000) {
+        setTimeout(() => {
+          if (confirm('您已经有一段时间没有备份数据了。建议导出数据以防止丢失。\n\n是否现在导出数据？')) {
+            exportData();
+            localStorage.setItem('lastBackupTime', now.toString());
+          }
+        }, 3000); // 3秒后提醒
       }
     }
 
@@ -2050,16 +2069,22 @@
       // 同时导出场馆和品牌数据
       const exportData = {
         gyms: gymsData.gyms,
-        brands: brandsData.brands
+        brands: brandsData.brands,
+        exportDate: new Date().toISOString()
       };
       const dataStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'climbing-data.json';
+      a.download = `climbing-data-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
+
+      // 记录备份时间
+      localStorage.setItem('lastBackupTime', Date.now().toString());
+
+      alert('数据已导出！建议将导出的文件保存到云盘（如 Google Drive、iCloud 等）以防止丢失。');
     }
 
     // 导入数据
