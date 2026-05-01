@@ -1435,9 +1435,9 @@
     // 初始化地图
     const map = L.map('map').setView([51.5074, -0.1278], 11);
 
-    // 使用 Stadia Maps 的现代样式
-    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
-      attribution: '© Stadia Maps, © OpenStreetMap contributors'
+    // 使用 OpenStreetMap 的免费瓦片
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
     // 地图点击事件
