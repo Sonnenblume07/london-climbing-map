@@ -1,0 +1,2396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>伦敦攀岩地图</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=20250501" />
+  <!-- 如果样式没有更新，请尝试硬刷新 (Ctrl+F5 或 Cmd+Shift+R) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #ffffff;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+
+    /* 微交互基础样式 */
+    .btn-ripple {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-ripple::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      transition: width 0.4s, height 0.4s;
+    }
+
+    .btn-ripple:active::after {
+      width: 300px;
+      height: 300px;
+    }
+
+    /* 现代极简主义地图控件样式 */
+    .toolbar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toolbar button {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #e0e0e0;
+      padding: 12px 18px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      backdrop-filter: blur(10px);
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .toolbar button:hover {
+      background: #f8f9fa;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      border-color: #d0d0d0;
+    }
+
+    .toolbar button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .toolbar button.primary {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #1a1a1a;
+    }
+
+    .toolbar button.primary:hover {
+      background: #2d2d2d;
+      border-color: #2d2d2d;
+      box-shadow: 0 8px 24px rgba(26, 26, 26, 0.25);
+    }
+
+    /* 地图缩放控件样式 */
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+      border-radius: 12px !important;
+      overflow: hidden !important;
+    }
+
+    .leaflet-control-zoom a {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border: none !important;
+      border-radius: 0 !important;
+      transition: all 0.2s ease !important;
+      color: #1a1a1a !important;
+      font-weight: 600 !important;
+    }
+
+    .leaflet-control-zoom a:hover {
+      background: #f0f0f0 !important;
+      transform: scale(1.05) !important;
+    }
+
+    .leaflet-control-zoom a:first-child {
+      border-radius: 12px 12px 0 0 !important;
+    }
+
+    .leaflet-control-zoom a:last-child {
+      border-radius: 0 0 12px 12px !important;
+    }
+
+    /* 地图属性控件样式 */
+    .leaflet-control-attribution {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 8px !important;
+      padding: 6px 10px !important;
+      font-size: 11px !important;
+      color: #666 !important;
+      backdrop-filter: blur(10px) !important;
+    }
+
+    #map {
+      height: 100vh;
+      width: 100%;
+    }
+
+    /* 顶部工具栏 */
+    .toolbar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      display: flex;
+      gap: 8px;
+    }
+
+    .toolbar button {
+      background: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      transition: all 0.2s;
+    }
+
+    .toolbar button:hover {
+      background: #f5f5f5;
+    }
+
+    .toolbar button.primary {
+      background: #ff5722;
+      color: white;
+    }
+
+    .toolbar button.primary:hover {
+      background: #e64a19;
+    }
+
+    /* 现代极简主义地图弹出框样式 */
+    .gym-popup {
+      min-width: 320px;
+      max-width: 360px;
+      font-family: 'Inter', sans-serif;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      background: white;
+      border: 1px solid rgba(224, 224, 224, 0.8);
+      margin: 0;
+      padding: 16px;
+    }
+
+    /* 覆盖Leaflet默认的popup内容样式 */
+    .leaflet-popup-content-wrapper {
+      padding: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .leaflet-popup-content {
+      margin: 0;
+      min-width: auto;
+    }
+
+    .gym-popup h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1a1a1a;
+      letter-spacing: -0.01em;
+      padding: 0 4px;
+    }
+
+    .gym-popup .address {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+      line-height: 1.5;
+      padding: 0 4px;
+    }
+
+    .gym-popup table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .gym-popup td {
+      padding: 6px 0;
+      vertical-align: top;
+    }
+
+    .gym-popup td:first-child {
+      color: #888;
+      width: 80px;
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .gym-popup td:last-child {
+      color: #1a1a1a;
+      font-weight: 400;
+    }
+
+    .gym-popup .facilities {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .gym-popup .facility-tag {
+      background: #f8f9fa;
+      color: #424242;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .gym-popup .facility-tag:hover {
+      background: #e9ecef;
+    }
+
+    .gym-popup .discount {
+      background: #f8f9fa;
+      color: #424242;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .gym-popup .notes {
+      font-size: 12px;
+      color: #666;
+      padding-top: 12px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .gym-popup .visit-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #f8f9fa;
+      padding: 6px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #424242;
+      font-weight: 500;
+      margin-bottom: 12px;
+    }
+
+    .gym-popup .popup-actions {
+      margin-top: 16px;
+      padding-top: 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .gym-popup .popup-actions button {
+      flex: 1;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .gym-popup .popup-actions .btn-checkin {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #1a1a1a;
+    }
+
+    .gym-popup .popup-actions .btn-checkin:hover {
+      background: #2d2d2d;
+    }
+
+    .gym-popup .popup-actions .btn-edit {
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+
+    .gym-popup .popup-actions .btn-edit:hover {
+      background: #e9ecef;
+    }
+
+    .gym-popup .popup-actions .btn-delete {
+      background: #f8f9fa;
+      color: #d32f2f;
+    }
+
+    .gym-popup .popup-actions .btn-delete:hover {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    /* 现代极简主义标记样式 */
+    .climbing-marker {
+      background: #1a1a1a;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      cursor: pointer;
+      font-weight: 600;
+      color: white;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(10px);
+    }
+
+    .climbing-marker:hover {
+      background: #2d2d2d;
+      transform: scale(1.15);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      border-color: #f0f0f0;
+    }
+
+    /* 品牌标签 - 现代极简主义 */
+    .brand-tag {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: white;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* 极简主义模态框 */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 2000;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 32px;
+      border-radius: 16px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      transform: scale(0.95);
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+
+    .modal.active .modal-content {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 24px;
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a1a;
+      letter-spacing: -0.01em;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #424242;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1a1a1a;
+      box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #424242;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .checkbox-group label:hover {
+      color: #1a1a1a;
+    }
+
+    .search-container {
+      position: relative;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 10;
+      display: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .search-results.active {
+      display: block;
+    }
+
+    .search-result-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      transition: all 0.2s ease;
+    }
+
+    .search-result-item:hover {
+      background: #f8f9fa;
+    }
+
+    .search-result-item:last-child {
+      border-bottom: none;
+    }
+
+    .modal-actions {
+      margin-top: 28px;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+
+    .modal-actions button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn-cancel {
+      background: #f5f5f5;
+      color: #424242;
+      border: 1px solid #e0e0e0;
+    }
+
+    .btn-cancel:hover {
+      background: #ebebeb;
+    }
+
+    .btn-save {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #1a1a1a;
+    }
+
+    .btn-save:hover {
+      background: #2d2d2d;
+    }
+
+    /* 地图点击提示 - 极简主义 */
+    .map-hint {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(26, 26, 26, 0.9);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 1000;
+      display: none;
+      backdrop-filter: blur(10px);
+    }
+
+    .map-hint.active {
+      display: block;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* 品牌管理模态框 - 极简主义 */
+    .brand-manager {
+      max-width: 640px;
+    }
+
+    .brand-list {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+
+    .brand-item {
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    .brand-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .brand-item-header {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      background: #f8f9fa;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .brand-item-header:hover {
+      background: #f0f0f0;
+    }
+
+    .brand-color-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin-right: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .brand-item-header .brand-name {
+      flex: 1;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+
+    .brand-item-header .brand-count {
+      color: #666;
+      font-size: 13px;
+      margin-right: 16px;
+      font-weight: 500;
+    }
+
+    .brand-item-header .brand-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .brand-item-header .brand-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn-brand-edit {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #1a1a1a;
+    }
+
+    .btn-brand-edit:hover {
+      background: #2d2d2d;
+    }
+
+    .btn-brand-delete {
+      background: #f5f5f5;
+      color: #d32f2f;
+      border: 1px solid #e0e0e0;
+    }
+
+    .btn-brand-delete:hover {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .brand-gyms {
+      padding: 0 16px 16px 16px;
+      background: white;
+      display: none;
+    }
+
+    .brand-gyms.active {
+      display: block;
+    }
+
+    .brand-gyms-title {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 12px;
+      padding-top: 12px;
+      font-weight: 500;
+    }
+
+    .brand-gym-item {
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s ease;
+    }
+
+    .brand-gym-item:hover {
+      background: #f0f0f0;
+    }
+
+    .brand-gym-item .visit-badge {
+      background: #e0e0e0;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .color-picker-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .color-picker-wrapper input[type="color"] {
+      width: 48px;
+      height: 40px;
+      padding: 4px;
+      cursor: pointer;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+    }
+
+    .color-picker-wrapper input[type="text"] {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* 打卡系统样式 - 极简主义 */
+    .checkin-item {
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      background: white;
+      transition: all 0.2s ease;
+    }
+
+    .checkin-item:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .checkin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: #f8f9fa;
+    }
+
+    .checkin-gym {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1a1a1a;
+    }
+
+    .checkin-date {
+      color: #666;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .checkin-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .checkin-actions button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .checkin-actions .btn-edit {
+      background: #f5f5f5;
+      color: #1a1a1a;
+      border: 1px solid #e0e0e0;
+    }
+
+    .checkin-actions .btn-edit:hover {
+      background: #ebebeb;
+    }
+
+    .checkin-actions .btn-delete {
+      background: #f5f5f5;
+      color: #d32f2f;
+      border: 1px solid #e0e0e0;
+    }
+
+    .checkin-actions .btn-delete:hover {
+      background: #ffebee;
+      color: #c62828;
+    }
+
+    .checkin-notes {
+      padding: 16px;
+      font-size: 14px;
+      color: #666;
+      border-top: 1px solid #e0e0e0;
+      line-height: 1.5;
+    }
+
+    /* 现代极简主义左侧面板样式 */
+    .sidebar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: rgba(255, 255, 255, 0.98);
+      border-right: 1px solid rgba(224, 224, 224, 0.8);
+      padding: 32px 24px;
+      overflow-y: auto;
+      z-index: 1000;
+      box-shadow: 0 0 30px rgba(0,0,0,0.06);
+      backdrop-filter: blur(20px);
+    }
+
+    .sidebar-section {
+      margin-bottom: 32px;
+    }
+
+    /* 添加到底部的按钮容器 */
+    .add-section-bottom {
+      position: absolute;
+      bottom: 32px;
+      left: 24px;
+      right: 24px;
+      z-index: 10;
+    }
+
+    .sidebar-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #1a1a1a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+    }
+
+    .sidebar-section-title .section-icon {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .brand-section .section-icon {
+      background: #f0f4f8;
+      color: #1a1a1a;
+    }
+
+    .checkin-section .section-icon {
+      background: #f0f4f8;
+      color: #1a1a1a;
+    }
+
+    .data-section .section-icon {
+      background: #f0f4f8;
+      color: #1a1a1a;
+    }
+
+    .add-section .section-icon {
+      background: #f0f4f8;
+      color: #1a1a1a;
+    }
+
+    .sidebar-section-title:hover .section-icon {
+      transform: scale(1.1);
+    }
+
+    .sidebar-section-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sidebar-button {
+      padding: 14px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      color: #1a1a1a;
+    }
+
+    .sidebar-button.large {
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+
+    .sidebar-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      background: #f8f9fa;
+      border-color: #e0e0e0;
+    }
+
+    .sidebar-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .brand-section .sidebar-button {
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+
+    .brand-section .sidebar-button:hover {
+      background: #e9ecef;
+    }
+
+    .checkin-section .sidebar-button {
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+
+    .checkin-section .sidebar-button:hover {
+      background: #e9ecef;
+    }
+
+    .data-section .sidebar-button {
+      background: #f8f9fa;
+      color: #1a1a1a;
+    }
+
+    .data-section .sidebar-button:hover {
+      background: #e9ecef;
+    }
+
+    .add-section .sidebar-button {
+      background: #1a1a1a;
+      color: white;
+      border: 1px solid #1a1a1a;
+    }
+
+    .add-section .sidebar-button:hover {
+      background: #2d2d2d;
+      border-color: #2d2d2d;
+    }
+
+    .map-container {
+      margin-left: 280px;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* 添加地图加载动画 */
+    .map-loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 999;
+    }
+
+    .map-loading::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f0f0f0;
+      border-top: 3px solid #1a1a1a;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 添加微交互效果 */
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    input[type="checkbox"]:hover {
+      transform: scale(1.1);
+    }
+
+    input[type="checkbox"]:checked {
+      background-color: #1a1a1a;
+      border-color: #1a1a1a;
+    }
+
+    input[type="checkbox"]:checked::after {
+      content: '✓';
+      color: white;
+      font-size: 14px;
+      display: block;
+      line-height: 1;
+      text-align: center;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* 添加按钮涟漪效果 */
+    .ripple-button {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .ripple-button::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+
+    .ripple-button:active::after {
+      width: 300px;
+      height: 300px;
+    }
+
+    /* 输入框焦点效果 */
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #1a1a1a;
+      box-shadow: 0 0 0 3px rgba(26, 26, 26, 0.1);
+      background: #fafafa;
+    }
+
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideIn {
+      from { transform: translateX(-20px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .sidebar-section {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: fixed;
+        bottom: 0;
+        top: auto;
+        border-right: none;
+        border-top: 1px solid #e0e0e0;
+        max-height: 50vh;
+        padding: 20px;
+      }
+
+      .map-container {
+        margin-left: 0;
+        height: 50vh;
+      }
+    }
+  </style>
+</head>
+<body style="opacity: 0; transition: opacity 0.5s ease;">
+  <!-- 左侧面板 -->
+  <div class="sidebar">
+    <!-- 品牌管理 section -->
+    <div class="sidebar-section brand-section">
+      <div class="sidebar-section-title">
+        <div class="section-icon">🏷️</div>
+        品牌管理
+      </div>
+      <div class="sidebar-section-content">
+        <button class="sidebar-button" onclick="openBrandManager()">
+          <span>📝</span> 管理品牌
+        </button>
+      </div>
+    </div>
+
+    <!-- 打卡历史 section -->
+    <div class="sidebar-section checkin-section">
+      <div class="sidebar-section-title">
+        <div class="section-icon">📅</div>
+        打卡历史
+      </div>
+      <div class="sidebar-section-content">
+        <button class="sidebar-button" onclick="openCheckinHistory()">
+          <span>📊</span> 查看历史
+        </button>
+      </div>
+    </div>
+
+    <!-- 数据管理 section -->
+    <div class="sidebar-section data-section">
+      <div class="sidebar-section-title">
+        <div class="section-icon">📁</div>
+        数据管理
+      </div>
+      <div class="sidebar-section-content">
+        <button class="sidebar-button" onclick="exportData()">
+          <span>💾</span> 导出数据
+        </button>
+        <button class="sidebar-button" onclick="importData()">
+          <span>📥</span> 导入数据
+        </button>
+      </div>
+    </div>
+
+    <!-- 添加到底部的添加场馆按钮 -->
+    <div class="add-section-bottom">
+      <button class="sidebar-button primary large" onclick="openAddModal()">
+        <span>📍</span> 添加新场馆
+      </button>
+    </div>
+  </div>
+
+  <!-- 地图容器 -->
+  <div class="map-container">
+    <div id="map"></div>
+  </div>
+
+  <!-- 地图点击提示 -->
+  <div class="map-hint" id="mapHint">点击地图选择场馆位置</div>
+
+  <!-- 添加/编辑场馆模态框 -->
+  <div class="modal" id="gymModal">
+    <div class="modal-content">
+      <h2 id="modalTitle">添加场馆</h2>
+
+      <div class="form-group">
+        <label>场馆名称 *</label>
+        <input type="text" id="gymName" placeholder="例如：The Castle">
+      </div>
+
+      <div class="form-group">
+        <label>品牌（连锁店）</label>
+        <select id="gymBrand" onchange="applyBrandTemplate()">
+          <option value="">-- 独立场馆 --</option>
+        </select>
+        <div style="font-size: 12px; color: #999; margin-top: 4px;">选择品牌后自动填充默认价格和设施</div>
+      </div>
+
+      <div class="form-group search-container">
+        <label>地址（输入搜索，或直接点击地图选点）</label>
+        <input type="text" id="gymAddressSearch" placeholder="输入地址搜索...">
+        <div class="search-results" id="searchResults"></div>
+        <input type="hidden" id="gymAddress">
+        <input type="hidden" id="gymLat">
+        <input type="hidden" id="gymLng">
+      </div>
+
+      <div class="form-group">
+        <label>已选坐标</label>
+        <div id="coordsDisplay" style="color: #999; font-size: 13px;">未选择（可点击地图选点）</div>
+      </div>
+
+      <div class="form-group">
+        <label>单次价格</label>
+        <div class="form-row">
+          <input type="text" id="gymPeakPrice" placeholder="Peak 例如：£18.50">
+          <input type="text" id="gymOffPeakPrice" placeholder="Off-peak 例如：£14">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>会员费用</label>
+        <div class="form-row">
+          <input type="text" id="gymMonthlyPrice" placeholder="月卡 例如：£59/月">
+          <input type="text" id="gymPunchcardPrice" placeholder="Punchcard 例如：£120/10次">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>折扣</label>
+          <input type="text" id="gymDiscount" placeholder="例如：学生证 8 折">
+        </div>
+        <div class="form-group">
+          <label>打卡次数</label>
+          <input type="number" id="gymVisitCount" value="0" min="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>优惠时段</label>
+        <input type="text" id="gymDiscountTimes" placeholder="例如：周二下午半价">
+      </div>
+
+      <div class="form-group">
+        <label>设施</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" value="攀石"> 攀石</label>
+          <label><input type="checkbox" value="顶绳"> 顶绳</label>
+          <label><input type="checkbox" value="先锋"> 先锋</label>
+          <label><input type="checkbox" value="健身房"> 健身房</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="gymNotes" rows="2" placeholder="其他信息..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeModal()">取消</button>
+        <button class="btn-save" onclick="saveGym()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 隐藏的文件输入 -->
+  <input type="file" id="fileInput" accept=".json" style="display: none">
+
+  <!-- 品牌管理模态框 -->
+  <div class="modal" id="brandManagerModal">
+    <div class="modal-content brand-manager">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">品牌管理</h2>
+        <button class="btn-save" onclick="openBrandEditor()">+ 新增品牌</button>
+      </div>
+
+      <div class="brand-list" id="brandList"></div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeBrandManager()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 品牌编辑模态框 -->
+  <div class="modal" id="brandEditorModal">
+    <div class="modal-content">
+      <h2 id="brandEditorTitle">新增品牌</h2>
+
+      <div class="form-group">
+        <label>品牌名称 *</label>
+        <input type="text" id="brandName" placeholder="例如：The Arch">
+      </div>
+
+      <div class="form-group">
+        <label>品牌颜色</label>
+        <div class="color-picker-wrapper">
+          <input type="color" id="brandColorPicker" value="#ff5722" onchange="document.getElementById('brandColor').value = this.value">
+          <input type="text" id="brandColor" placeholder="#ff5722" value="#ff5722" oninput="document.getElementById('brandColorPicker').value = this.value">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>单次价格</label>
+        <div class="form-row">
+          <input type="text" id="brandPeakPrice" placeholder="Peak 例如：£18">
+          <input type="text" id="brandOffPeakPrice" placeholder="Off-peak 例如：£14">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>会员费用</label>
+        <div class="form-row">
+          <input type="text" id="brandMonthlyPrice" placeholder="月卡 例如：£52/月">
+          <input type="text" id="brandPunchcardPrice" placeholder="Punchcard 例如：£120/10次">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>折扣</label>
+        <input type="text" id="brandDiscount" placeholder="例如：学生 £13">
+      </div>
+
+      <div class="form-group">
+        <label>优惠时段</label>
+        <input type="text" id="brandDiscountTimes" placeholder="例如：工作日 12:00 前入场 £11">
+      </div>
+
+      <div class="form-group">
+        <label>设施</label>
+        <div class="checkbox-group" id="brandFacilities">
+          <label><input type="checkbox" value="攀石"> 攀石</label>
+          <label><input type="checkbox" value="顶绳"> 顶绳</label>
+          <label><input type="checkbox" value="先锋"> 先锋</label>
+          <label><input type="checkbox" value="健身房"> 健身房</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="brandNotes" rows="2" placeholder="品牌说明..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeBrandEditor()">取消</button>
+        <button class="btn-save" onclick="saveBrand()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 打卡历史模态框 -->
+  <div class="modal" id="checkinHistoryModal">
+    <div class="modal-content">
+      <h2>打卡历史</h2>
+
+      <div class="form-row" style="margin-bottom: 16px;">
+        <div class="form-group" style="flex: 1;">
+          <label>场馆</label>
+          <select id="checkinFilterGym" onchange="filterCheckinHistory()">
+            <option value="">所有场馆</option>
+            ${gymsData.gyms.map(gym => `<option value="${gym.id}">${gym.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label>日期</label>
+          <input type="date" id="checkinFilterDate" onchange="filterCheckinHistory()">
+        </div>
+      </div>
+
+      <div id="checkinHistory" class="brand-list"></div>
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeCheckinHistory()">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 编辑打卡记录模态框 -->
+  <div class="modal" id="editCheckinModal">
+    <div class="modal-content">
+      <h2>编辑打卡记录</h2>
+
+      <div class="form-group">
+        <label>日期</label>
+        <input type="date" id="editCheckinDate">
+      </div>
+
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="editCheckinNotes" rows="3" placeholder="打卡备注..."></textarea>
+      </div>
+
+      <input type="hidden" id="editCheckinId">
+
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeEditCheckin()">取消</button>
+        <button class="btn-save" onclick="saveEditCheckin()">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=20250501"></script>
+  <script>
+    // 数据存储
+    let gymsData = { gyms: [] };
+    let brandsData = { brands: [] };
+    let editingGymId = null;
+    let isSelectingLocation = false;
+    let tempMarker = null;
+
+    // 初始化地图
+    const map = L.map('map').setView([51.5074, -0.1278], 11);
+
+    // 使用 Stadia Maps 的现代样式
+    L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png', {
+      attribution: '© Stadia Maps, © OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 地图点击事件
+    map.on('click', function(e) {
+      if (isSelectingLocation) {
+        const lat = e.latlng.lat.toFixed(6);
+        const lng = e.latlng.lng.toFixed(6);
+
+        document.getElementById('gymLat').value = lat;
+        document.getElementById('gymLng').value = lng;
+        document.getElementById('coordsDisplay').textContent = `${lat}, ${lng}`;
+
+        // 添加临时标记
+        if (tempMarker) {
+          map.removeLayer(tempMarker);
+        }
+        tempMarker = L.marker([lat, lng]).addTo(map);
+
+        // 逆地理编码获取地址
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.display_name) {
+              document.getElementById('gymAddress').value = data.display_name;
+              document.getElementById('gymAddressSearch').value = data.display_name.split(',').slice(0, 3).join(', ');
+            }
+          });
+      }
+    });
+
+    // 创建标记图标
+    function createMarkerIcon(visitCount, color = '#ff5722') {
+      return L.divIcon({
+        className: 'custom-marker',
+        html: `<div class="climbing-marker" style="background: ${color}">${visitCount}</div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+    }
+
+    // 格式化设施标签
+    function formatFacilities(facilities) {
+      if (!facilities || facilities.length === 0) return '';
+      return facilities.map(f => `<span class="facility-tag">${f}</span>`).join('');
+    }
+
+    // 创建弹出框内容
+    function createPopupContent(gym) {
+      const brand = gym.brandId ? brandsData.brands.find(b => b.id === gym.brandId) : null;
+      const brandHtml = brand ? `<div class="brand-tag" style="background: ${brand.color}">${brand.name}</div>` : '';
+
+      // 格式化价格显示
+      let singlePriceDisplay = '-';
+      if (gym.peakPrice || gym.offPeakPrice) {
+        const parts = [];
+        if (gym.peakPrice) parts.push(`Peak ${gym.peakPrice}`);
+        if (gym.offPeakPrice) parts.push(`Off-peak ${gym.offPeakPrice}`);
+        singlePriceDisplay = parts.join(' / ');
+      }
+
+      let membershipDisplay = '-';
+      if (gym.monthlyPrice || gym.punchcardPrice) {
+        const parts = [];
+        if (gym.monthlyPrice) parts.push(`月卡 ${gym.monthlyPrice}`);
+        if (gym.punchcardPrice) parts.push(`Punchcard ${gym.punchcardPrice}`);
+        membershipDisplay = parts.join(' / ');
+      }
+
+      return `
+        <div class="gym-popup">
+          ${brandHtml}
+          <h2>${gym.name}</h2>
+          <div class="address">${gym.address}</div>
+
+          <table>
+            <tr><td>单次价格</td><td>${singlePriceDisplay}</td></tr>
+            <tr><td>会员费用</td><td>${membershipDisplay}</td></tr>
+            ${gym.discount ? `<tr><td>折扣</td><td>${gym.discount}</td></tr>` : ''}
+          </table>
+
+          ${gym.discountTimes ? `<div class="discount">优惠: ${gym.discountTimes}</div>` : ''}
+
+          <div class="facilities">${formatFacilities(gym.facilities)}</div>
+
+          <div class="visit-count">打卡 ${gym.visitCount} 次</div>
+
+          ${gym.notes ? `<div class="notes">${gym.notes}</div>` : ''}
+
+          <div class="popup-actions">
+            <button class="btn-checkin" onclick="checkin(${gym.id})">打卡</button>
+            <button class="btn-edit" onclick="editGym(${gym.id})">编辑</button>
+            <button class="btn-delete" onclick="deleteGym(${gym.id})">删除</button>
+          </div>
+        </div>
+      `;
+    }
+
+    // 渲染所有标记
+    let markers = {};
+    function renderMarkers() {
+      // 清除现有标记
+      Object.values(markers).forEach(m => map.removeLayer(m));
+      markers = {};
+
+      gymsData.gyms.forEach((gym, index) => {
+        const brand = gym.brandId ? brandsData.brands.find(b => b.id === gym.brandId) : null;
+        const color = brand ? brand.color : '#ff5722';
+
+        const marker = L.marker([gym.lat, gym.lng], {
+          icon: createMarkerIcon(gym.visitCount, color)
+        }).addTo(map);
+
+        // 添加动画延迟
+        setTimeout(() => {
+          marker.getElement().style.opacity = '0';
+          marker.getElement().style.transition = 'opacity 0.3s ease';
+          setTimeout(() => {
+            marker.getElement().style.opacity = '1';
+          }, 50);
+        }, index * 50);
+
+        marker.bindPopup(createPopupContent(gym));
+        markers[gym.id] = marker;
+      });
+    }
+
+    // 加载数据
+    function loadData() {
+      // 先加载品牌数据
+      const savedBrands = localStorage.getItem('climbingBrands');
+      if (savedBrands) {
+        brandsData = JSON.parse(savedBrands);
+        populateBrandDropdown();
+      } else {
+        fetch('brands.json')
+          .then(response => response.json())
+          .then(data => {
+            brandsData = data;
+            localStorage.setItem('climbingBrands', JSON.stringify(data));
+            populateBrandDropdown();
+          })
+          .catch(err => {
+            console.error('加载品牌数据失败:', err);
+          });
+      }
+
+      // 再加载场馆数据
+      const saved = localStorage.getItem('climbingGyms');
+      if (saved) {
+        gymsData = JSON.parse(saved);
+        renderMarkers();
+      } else {
+        // 从 gyms.json 加载初始数据
+        fetch('gyms.json')
+          .then(response => response.json())
+          .then(data => {
+            gymsData = data;
+            localStorage.setItem('climbingGyms', JSON.stringify(data));
+            renderMarkers();
+          })
+          .catch(err => {
+            console.error('加载数据失败:', err);
+          });
+      }
+    }
+
+    // 填充品牌下拉框
+    function populateBrandDropdown() {
+      const select = document.getElementById('gymBrand');
+      select.innerHTML = '<option value="">-- 独立场馆 --</option>';
+      brandsData.brands.forEach(brand => {
+        const option = document.createElement('option');
+        option.value = brand.id;
+        option.textContent = brand.name;
+        select.appendChild(option);
+      });
+    }
+
+    // 应用品牌模板
+    function applyBrandTemplate() {
+      const brandId = document.getElementById('gymBrand').value;
+      if (!brandId) return;
+
+      const brand = brandsData.brands.find(b => b.id === brandId);
+      if (!brand) return;
+
+      // 填充模板数据
+      document.getElementById('gymPeakPrice').value = brand.peakPrice || '';
+      document.getElementById('gymOffPeakPrice').value = brand.offPeakPrice || '';
+      document.getElementById('gymMonthlyPrice').value = brand.monthlyPrice || '';
+      document.getElementById('gymPunchcardPrice').value = brand.punchcardPrice || '';
+      document.getElementById('gymDiscount').value = brand.discount || '';
+      document.getElementById('gymDiscountTimes').value = brand.discountTimes || '';
+      document.getElementById('gymNotes').value = brand.notes || '';
+
+      // 设置设施
+      document.querySelectorAll('.checkbox-group input').forEach(cb => {
+        cb.checked = brand.facilities && brand.facilities.includes(cb.value);
+      });
+    }
+
+    // 保存数据到 localStorage
+    function saveData() {
+      localStorage.setItem('climbingGyms', JSON.stringify(gymsData));
+    }
+
+    // 保存品牌数据到 localStorage
+    function saveBrandsData() {
+      localStorage.setItem('climbingBrands', JSON.stringify(brandsData));
+    }
+
+    // 打卡系统
+    let checkinsData = { checkins: [] };
+
+    // 加载打卡数据
+    function loadCheckinsData() {
+      const saved = localStorage.getItem('climbingCheckins');
+      if (saved) {
+        checkinsData = JSON.parse(saved);
+      }
+    }
+
+    // 初始化地图
+    function initializeMap() {
+      // 设置地图选项，优化视觉效果
+      map.on('load', function() {
+        // 添加地图加载完成的动画
+        document.body.style.opacity = '1';
+
+        // 淡入动画
+        setTimeout(() => {
+          const mapElement = document.getElementById('map');
+          mapElement.style.transition = 'opacity 0.5s ease';
+          mapElement.style.opacity = '1';
+        }, 100);
+      });
+
+      // 设置地图缩放和拖拽动画
+      map.zoomControl.setPosition('topright');
+
+      // 优化地图交互
+      map.options.zoomAnimation = true;
+      map.options.fadeAnimation = true;
+      map.options.markerZoomAnimation = true;
+
+      // 验证地图尺寸
+      map.invalidateSize();
+    }
+
+    // 保存打卡数据
+    function saveCheckinsData() {
+      localStorage.setItem('climbingCheckins', JSON.stringify(checkinsData));
+    }
+
+    // 打卡
+    function checkin(id) {
+      const gym = gymsData.gyms.find(g => g.id === id);
+      if (!gym) return;
+
+      const today = new Date();
+      const dateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+      // 检查今天是否已经打卡
+      const todayCheckin = checkinsData.checkins.find(c =>
+        c.gymId === id && c.date === dateStr
+      );
+
+      if (todayCheckin) {
+        alert('今天已经打卡过了！');
+        return;
+      }
+
+      // 添加打卡记录
+      const checkinRecord = {
+        id: Date.now(),
+        gymId: id,
+        date: dateStr,
+        notes: ''
+      };
+
+      checkinsData.checkins.push(checkinRecord);
+      saveCheckinsData();
+
+      // 更新场馆打卡次数
+      gym.visitCount = (gym.visitCount || 0) + 1;
+      saveData();
+      renderMarkers();
+
+      // 重新打开弹窗
+      markers[id].openPopup();
+    }
+
+    // 打开打卡历史页面
+    function openCheckinHistory() {
+      loadCheckinsData();
+      renderCheckinHistory();
+      const modal = document.getElementById('checkinHistoryModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+    }
+
+    // 关闭打卡历史页面
+    function closeCheckinHistory() {
+      const modal = document.getElementById('checkinHistoryModal');
+      modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+      modal.querySelector('.modal-content').style.opacity = '0';
+      setTimeout(() => {
+        modal.classList.remove('active');
+      }, 200);
+    }
+
+    // 渲染打卡历史
+    function renderCheckinHistory() {
+      const historyDiv = document.getElementById('checkinHistory');
+      const filterGym = document.getElementById('checkinFilterGym').value;
+      const filterDate = document.getElementById('checkinFilterDate').value;
+
+      let filteredCheckins = checkinsData.checkins;
+
+      // 按场馆筛选
+      if (filterGym) {
+        filteredCheckins = filteredCheckins.filter(c => c.gymId == filterGym);
+      }
+
+      // 按日期筛选
+      if (filterDate) {
+        filteredCheckins = filteredCheckins.filter(c => c.date === filterDate);
+      }
+
+      if (filteredCheckins.length === 0) {
+        historyDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无打卡记录</div>';
+        return;
+      }
+
+      historyDiv.innerHTML = filteredCheckins.map(checkin => {
+        const gym = gymsData.gyms.find(g => g.id === checkin.gymId);
+        return `
+          <div class="checkin-item">
+            <div class="checkin-header">
+              <div class="checkin-gym">${gym ? gym.name : '未知场馆'}</div>
+              <div class="checkin-date">${checkin.date}</div>
+              <div class="checkin-actions">
+                <button class="btn-edit" onclick="editCheckin(${checkin.id})">编辑</button>
+                <button class="btn-delete" onclick="deleteCheckin(${checkin.id})">删除</button>
+              </div>
+            </div>
+            ${checkin.notes ? `<div class="checkin-notes">${checkin.notes}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 编辑打卡记录
+    function editCheckin(id) {
+      const checkin = checkinsData.checkins.find(c => c.id === id);
+      if (!checkin) return;
+
+      document.getElementById('editCheckinDate').value = checkin.date;
+      document.getElementById('editCheckinNotes').value = checkin.notes;
+      document.getElementById('editCheckinId').value = checkin.id;
+
+      document.getElementById('editCheckinModal').classList.add('active');
+    }
+
+    // 删除打卡记录
+    function deleteCheckin(id) {
+      if (confirm('确定删除这条打卡记录？')) {
+        checkinsData.checkins = checkinsData.checkins.filter(c => c.id !== id);
+        saveCheckinsData();
+        renderCheckinHistory();
+      }
+    }
+
+    // 保存编辑的打卡记录
+    function saveEditCheckin() {
+      const id = parseInt(document.getElementById('editCheckinId').value);
+      const date = document.getElementById('editCheckinDate').value;
+      const notes = document.getElementById('editCheckinNotes').value;
+
+      const checkin = checkinsData.checkins.find(c => c.id === id);
+      if (checkin) {
+        checkin.date = date;
+        checkin.notes = notes;
+        saveCheckinsData();
+        renderCheckinHistory();
+        closeEditCheckin();
+      }
+    }
+
+    // 关闭编辑打卡模态框
+    function closeEditCheckin() {
+      document.getElementById('editCheckinModal').classList.remove('active');
+    }
+
+    // 打卡历史筛选
+    function filterCheckinHistory() {
+      renderCheckinHistory();
+    }
+
+    // 删除场馆
+    function deleteGym(id) {
+      if (confirm('确定删除这个场馆吗？')) {
+        gymsData.gyms = gymsData.gyms.filter(g => g.id !== id);
+        saveData();
+        renderMarkers();
+      }
+    }
+
+    // 打开添加模态框
+    function openAddModal() {
+      editingGymId = null;
+      document.getElementById('modalTitle').textContent = '添加场馆';
+      clearForm();
+      const modal = document.getElementById('gymModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+      isSelectingLocation = true;
+      document.getElementById('mapHint').classList.add('active');
+    }
+
+    // 编辑场馆
+    function editGym(id) {
+      const gym = gymsData.gyms.find(g => g.id === id);
+      if (!gym) return;
+
+      editingGymId = id;
+      document.getElementById('modalTitle').textContent = '编辑场馆';
+
+      document.getElementById('gymName').value = gym.name || '';
+      document.getElementById('gymBrand').value = gym.brandId || '';
+      document.getElementById('gymAddress').value = gym.address || '';
+      document.getElementById('gymAddressSearch').value = gym.address.split(',').slice(0, 3).join(', ') || '';
+      document.getElementById('gymLat').value = gym.lat || '';
+      document.getElementById('gymLng').value = gym.lng || '';
+      document.getElementById('coordsDisplay').textContent = gym.lat ? `${gym.lat}, ${gym.lng}` : '未选择';
+      document.getElementById('gymPeakPrice').value = gym.peakPrice || '';
+      document.getElementById('gymOffPeakPrice').value = gym.offPeakPrice || '';
+      document.getElementById('gymMonthlyPrice').value = gym.monthlyPrice || '';
+      document.getElementById('gymPunchcardPrice').value = gym.punchcardPrice || '';
+      document.getElementById('gymDiscount').value = gym.discount || '';
+      document.getElementById('gymDiscountTimes').value = gym.discountTimes || '';
+      document.getElementById('gymVisitCount').value = gym.visitCount || 0;
+      document.getElementById('gymNotes').value = gym.notes || '';
+
+      // 设置设施复选框
+      document.querySelectorAll('.checkbox-group input').forEach(cb => {
+        cb.checked = gym.facilities && gym.facilities.includes(cb.value);
+      });
+
+      const modal = document.getElementById('gymModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+      isSelectingLocation = false;
+      document.getElementById('mapHint').classList.remove('active');
+    }
+
+    // 清空表单
+    function clearForm() {
+      document.getElementById('gymName').value = '';
+      document.getElementById('gymBrand').value = '';
+      document.getElementById('gymAddress').value = '';
+      document.getElementById('gymAddressSearch').value = '';
+      document.getElementById('gymLat').value = '';
+      document.getElementById('gymLng').value = '';
+      document.getElementById('coordsDisplay').textContent = '未选择（可点击地图选点）';
+      document.getElementById('gymPeakPrice').value = '';
+      document.getElementById('gymOffPeakPrice').value = '';
+      document.getElementById('gymMonthlyPrice').value = '';
+      document.getElementById('gymPunchcardPrice').value = '';
+      document.getElementById('gymVisitCount').value = 0;
+      document.getElementById('gymNotes').value = '';
+      document.querySelectorAll('.checkbox-group input').forEach(cb => cb.checked = false);
+
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+        tempMarker = null;
+      }
+    }
+
+    // 关闭模态框
+    function closeModal() {
+      const modal = document.getElementById('gymModal');
+      modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+      modal.querySelector('.modal-content').style.opacity = '0';
+      setTimeout(() => {
+        modal.classList.remove('active');
+        isSelectingLocation = false;
+        document.getElementById('mapHint').classList.remove('active');
+        clearForm();
+      }, 200);
+    }
+
+    // 保存场馆
+    function saveGym() {
+      const name = document.getElementById('gymName').value.trim();
+      const address = document.getElementById('gymAddress').value.trim();
+      const lat = parseFloat(document.getElementById('gymLat').value);
+      const lng = parseFloat(document.getElementById('gymLng').value);
+      const brandId = document.getElementById('gymBrand').value || null;
+
+      if (!name) {
+        alert('请输入场馆名称');
+        return;
+      }
+
+      if (!lat || !lng) {
+        alert('请在地图上选择位置');
+        return;
+      }
+
+      const facilities = [];
+      document.querySelectorAll('.checkbox-group input:checked').forEach(cb => {
+        facilities.push(cb.value);
+      });
+
+      const gymData = {
+        id: editingGymId || Date.now(),
+        name,
+        brandId,
+        address: address || '未填写地址',
+        lat,
+        lng,
+        peakPrice: document.getElementById('gymPeakPrice').value.trim(),
+        offPeakPrice: document.getElementById('gymOffPeakPrice').value.trim(),
+        monthlyPrice: document.getElementById('gymMonthlyPrice').value.trim(),
+        punchcardPrice: document.getElementById('gymPunchcardPrice').value.trim(),
+        discount: document.getElementById('gymDiscount').value.trim(),
+        discountTimes: document.getElementById('gymDiscountTimes').value.trim(),
+        facilities,
+        visitCount: parseInt(document.getElementById('gymVisitCount').value) || 0,
+        notes: document.getElementById('gymNotes').value.trim()
+      };
+
+      if (editingGymId) {
+        const index = gymsData.gyms.findIndex(g => g.id === editingGymId);
+        if (index !== -1) {
+          gymsData.gyms[index] = gymData;
+        }
+      } else {
+        gymsData.gyms.push(gymData);
+      }
+
+      saveData();
+      renderMarkers();
+      closeModal();
+    }
+
+    // 地址搜索
+    let searchTimeout;
+    document.getElementById('gymAddressSearch').addEventListener('input', function(e) {
+      clearTimeout(searchTimeout);
+      const query = e.target.value.trim();
+
+      if (query.length < 3) {
+        document.getElementById('searchResults').classList.remove('active');
+        return;
+      }
+
+      searchTimeout = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ', London, UK')}&limit=5`)
+          .then(res => res.json())
+          .then(data => {
+            const resultsDiv = document.getElementById('searchResults');
+            if (data.length === 0) {
+              resultsDiv.classList.remove('active');
+              return;
+            }
+
+            resultsDiv.innerHTML = data.map(item => `
+              <div class="search-result-item" onclick="selectSearchResult(${item.lat}, ${item.lon}, '${item.display_name.replace(/'/g, "\\'")}')">
+                ${item.display_name}
+              </div>
+            `).join('');
+            resultsDiv.classList.add('active');
+          });
+      }, 500);
+    });
+
+    // 选择搜索结果
+    function selectSearchResult(lat, lng, address) {
+      document.getElementById('gymLat').value = lat;
+      document.getElementById('gymLng').value = lng;
+      document.getElementById('gymAddress').value = address;
+      document.getElementById('gymAddressSearch').value = address.split(',').slice(0, 3).join(', ');
+      document.getElementById('coordsDisplay').textContent = `${lat}, ${lng}`;
+      document.getElementById('searchResults').classList.remove('active');
+
+      // 在地图上显示位置
+      if (tempMarker) {
+        map.removeLayer(tempMarker);
+      }
+      tempMarker = L.marker([lat, lng]).addTo(map);
+      map.setView([lat, lng], 15);
+    }
+
+    // 导出数据
+    function exportData() {
+      // 同时导出场馆和品牌数据
+      const exportData = {
+        gyms: gymsData.gyms,
+        brands: brandsData.brands
+      };
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'climbing-data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 导入数据
+    function importData() {
+      document.getElementById('fileInput').click();
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const data = JSON.parse(event.target.result);
+
+          // 支持两种格式：新格式（含 brands）和旧格式（仅 gyms）
+          if (data.gyms && Array.isArray(data.gyms)) {
+            gymsData = { gyms: data.gyms };
+            saveData();
+
+            if (data.brands && Array.isArray(data.brands)) {
+              brandsData = { brands: data.brands };
+              saveBrandsData();
+              populateBrandDropdown();
+            }
+
+            renderMarkers();
+            alert('导入成功！');
+          } else {
+            alert('文件格式不正确');
+          }
+        } catch (err) {
+          alert('解析文件失败：' + err.message);
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    // ========== 品牌管理功能 ==========
+
+    let editingBrandId = null;
+
+    function openBrandManager() {
+      renderBrandList();
+      const modal = document.getElementById('brandManagerModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+    }
+
+    function closeBrandManager() {
+      const modal = document.getElementById('brandManagerModal');
+      modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+      modal.querySelector('.modal-content').style.opacity = '0';
+      setTimeout(() => {
+        modal.classList.remove('active');
+      }, 200);
+    }
+
+    function renderBrandList() {
+      const listDiv = document.getElementById('brandList');
+
+      if (brandsData.brands.length === 0) {
+        listDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无品牌，点击上方按钮新增</div>';
+        return;
+      }
+
+      listDiv.innerHTML = brandsData.brands.map(brand => {
+        const brandGyms = gymsData.gyms.filter(g => g.brandId === brand.id);
+        const gymCount = brandGyms.length;
+
+        return `
+          <div class="brand-item">
+            <div class="brand-item-header" onclick="toggleBrandGyms('${brand.id}')">
+              <div class="brand-color-dot" style="background: ${brand.color}"></div>
+              <div class="brand-name">${brand.name}</div>
+              <div class="brand-count">${gymCount} 家场馆</div>
+              <div class="brand-actions" onclick="event.stopPropagation()">
+                <button class="btn-brand-edit" onclick="editBrand('${brand.id}')">编辑</button>
+                <button class="btn-brand-delete" onclick="deleteBrand('${brand.id}')">删除</button>
+              </div>
+            </div>
+            <div class="brand-gyms" id="brand-gyms-${brand.id}">
+              <div class="brand-gyms-title">旗下场馆</div>
+              ${gymCount > 0 ? brandGyms.map(gym => `
+                <div class="brand-gym-item">
+                  <span>${gym.name}</span>
+                  <span class="visit-badge">打卡 ${gym.visitCount || 0} 次</span>
+                </div>
+              `).join('') : '<div style="color: #999; font-size: 13px;">暂无场馆</div>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleBrandGyms(brandId) {
+      const gymsDiv = document.getElementById(`brand-gyms-${brandId}`);
+      gymsDiv.classList.toggle('active');
+    }
+
+    function openBrandEditor() {
+      editingBrandId = null;
+      document.getElementById('brandEditorTitle').textContent = '新增品牌';
+      clearBrandForm();
+      const modal = document.getElementById('brandEditorModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+    }
+
+    function editBrand(brandId) {
+      const brand = brandsData.brands.find(b => b.id === brandId);
+      if (!brand) return;
+
+      editingBrandId = brandId;
+      document.getElementById('brandEditorTitle').textContent = '编辑品牌';
+
+      document.getElementById('brandName').value = brand.name || '';
+      document.getElementById('brandColor').value = brand.color || '#ff5722';
+      document.getElementById('brandColorPicker').value = brand.color || '#ff5722';
+      document.getElementById('brandPeakPrice').value = brand.peakPrice || '';
+      document.getElementById('brandOffPeakPrice').value = brand.offPeakPrice || '';
+      document.getElementById('brandMonthlyPrice').value = brand.monthlyPrice || '';
+      document.getElementById('brandPunchcardPrice').value = brand.punchcardPrice || '';
+      document.getElementById('brandDiscount').value = brand.discount || '';
+      document.getElementById('brandDiscountTimes').value = brand.discountTimes || '';
+      document.getElementById('brandNotes').value = brand.notes || '';
+
+      // 设置设施复选框
+      document.querySelectorAll('#brandFacilities input').forEach(cb => {
+        cb.checked = brand.facilities && brand.facilities.includes(cb.value);
+      });
+
+      const modal = document.getElementById('brandEditorModal');
+      modal.classList.add('active');
+      // 添加打开动画
+      setTimeout(() => {
+        modal.querySelector('.modal-content').style.transform = 'scale(1)';
+        modal.querySelector('.modal-content').style.opacity = '1';
+      }, 10);
+    }
+
+    function clearBrandForm() {
+      document.getElementById('brandName').value = '';
+      document.getElementById('brandColor').value = '#ff5722';
+      document.getElementById('brandColorPicker').value = '#ff5722';
+      document.getElementById('brandSinglePrice').value = '';
+      document.getElementById('brandMembershipPrice').value = '';
+      document.getElementById('brandStudentDiscount').value = '';
+      document.getElementById('brandDiscountTimes').value = '';
+      document.getElementById('brandNotes').value = '';
+      document.querySelectorAll('#brandFacilities input').forEach(cb => cb.checked = false);
+    }
+
+    function closeBrandEditor() {
+      const modal = document.getElementById('brandEditorModal');
+      modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+      modal.querySelector('.modal-content').style.opacity = '0';
+      setTimeout(() => {
+        modal.classList.remove('active');
+        clearBrandForm();
+      }, 200);
+    }
+
+    function saveBrand() {
+      const name = document.getElementById('brandName').value.trim();
+      const color = document.getElementById('brandColor').value.trim() || '#ff5722';
+
+      if (!name) {
+        alert('请输入品牌名称');
+        return;
+      }
+
+      const facilities = [];
+      document.querySelectorAll('#brandFacilities input:checked').forEach(cb => {
+        facilities.push(cb.value);
+      });
+
+      const brandData = {
+        id: editingBrandId || 'brand-' + Date.now(),
+        name,
+        color,
+        peakPrice: document.getElementById('brandPeakPrice').value.trim(),
+        offPeakPrice: document.getElementById('brandOffPeakPrice').value.trim(),
+        monthlyPrice: document.getElementById('brandMonthlyPrice').value.trim(),
+        punchcardPrice: document.getElementById('brandPunchcardPrice').value.trim(),
+        discount: document.getElementById('brandDiscount').value.trim(),
+        discountTimes: document.getElementById('brandDiscountTimes').value.trim(),
+        facilities,
+        notes: document.getElementById('brandNotes').value.trim()
+      };
+
+      if (editingBrandId) {
+        const index = brandsData.brands.findIndex(b => b.id === editingBrandId);
+        if (index !== -1) {
+          brandsData.brands[index] = brandData;
+        }
+      } else {
+        brandsData.brands.push(brandData);
+      }
+
+      saveBrandsData();
+      populateBrandDropdown();
+      renderBrandList();
+      renderMarkers(); // 更新地图上的品牌颜色和标签
+      closeBrandEditor();
+    }
+
+    function deleteBrand(brandId) {
+      const brandGyms = gymsData.gyms.filter(g => g.brandId === brandId);
+
+      if (brandGyms.length > 0) {
+        if (!confirm(`该品牌下有 ${brandGyms.length} 家场馆，删除后这些场馆将变为独立场馆，确定删除？`)) {
+          return;
+        }
+
+        // 将品牌下的场馆设置为独立场馆
+        gymsData.gyms.forEach(gym => {
+          if (gym.brandId === brandId) {
+            gym.brandId = null;
+          }
+        });
+        saveData();
+      } else {
+        if (!confirm('确定删除该品牌吗？')) {
+          return;
+        }
+      }
+
+      brandsData.brands = brandsData.brands.filter(b => b.id !== brandId);
+      saveBrandsData();
+      populateBrandDropdown();
+      renderBrandList();
+      renderMarkers();
+    }
+
+    // 初始化微交互效果
+    function initializeMicroInteractions() {
+      // 为所有按钮添加涟漪效果
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.classList.add('btn-ripple');
+
+        // 添加点击反馈
+        button.addEventListener('click', function(e) {
+          const ripple = document.createElement('span');
+          ripple.style.position = 'absolute';
+          ripple.style.width = '20px';
+          ripple.style.height = '20px';
+          ripple.style.background = 'rgba(255, 255, 255, 0.5)';
+          ripple.style.borderRadius = '50%';
+          ripple.style.transform = 'translate(-50%, -50%)';
+          ripple.style.pointerEvents = 'none';
+          ripple.style.animation = 'ripple 0.6s ease-out';
+
+          const rect = button.getBoundingClientRect();
+          ripple.style.left = (e.clientX - rect.left) + 'px';
+          ripple.style.top = (e.clientY - rect.top) + 'px';
+
+          button.style.position = 'relative';
+          button.style.overflow = 'hidden';
+          button.appendChild(ripple);
+
+          setTimeout(() => ripple.remove(), 600);
+        });
+      });
+
+      // 为输入框添加焦点动画
+      const inputs = document.querySelectorAll('input, textarea, select');
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          this.parentElement.style.transform = 'scale(1.02)';
+          this.parentElement.style.transition = 'transform 0.2s ease';
+        });
+
+        input.addEventListener('blur', function() {
+          this.parentElement.style.transform = 'scale(1)';
+        });
+      });
+
+      // 为卡片添加悬浮效果
+      const cards = document.querySelectorAll('.brand-item, .checkin-item, .gym-popup');
+      cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-2px)';
+          this.style.transition = 'transform 0.2s ease';
+        });
+
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+        });
+      });
+    }
+
+    // 添加涟漪动画
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ripple {
+        from {
+          width: 0;
+          height: 0;
+          opacity: 1;
+        }
+        to {
+          width: 200px;
+          height: 200px;
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // 初始化
+    loadData();
+    loadCheckinsData();
+    initializeMap();
+    initializeMicroInteractions();
+
+    // 页面加载完成后的淡入效果
+    setTimeout(() => {
+      document.body.style.opacity = '1';
+    }, 100);
+  </script>
+</body>
+</html>

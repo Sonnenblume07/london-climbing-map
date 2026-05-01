@@ -1,0 +1,69 @@
+{
+  "brands": [
+    {
+      "id": "the-arch",
+      "name": "The Arch",
+      "peakPrice": "£16",
+      "offPeakPrice": "£12",
+      "monthlyPrice": "£52/月",
+      "punchcardPrice": "£100/10次",
+      "discount": "学生 £13",
+      "discountTimes": "工作日 12:00 前入场 £11",
+      "facilities": ["攀石", "顶绳", "先锋"],
+      "color": "#E53935",
+      "notes": "The Arch 连锁，各分店价格略有差异"
+    },
+    {
+      "id": "climbing-hangar",
+      "name": "Climbing Hangar",
+      "peakPrice": "£17",
+      "offPeakPrice": "£14",
+      "monthlyPrice": "£65/月",
+      "punchcardPrice": "£120/10次",
+      "discount": "学生 £14",
+      "discountTimes": "首次访问 £10",
+      "facilities": ["攀石", "健身房"],
+      "color": "#FB8C00",
+      "notes": "攀石为主，线路更新快"
+    },
+    {
+      "id": "vavxewall",
+      "name": "VauxWall",
+      "peakPrice": "£16",
+      "offPeakPrice": "£14",
+      "monthlyPrice": "£54/月",
+      "punchcardPrice": "£110/10次",
+      "discount": "学生 £13",
+      "discountTimes": "",
+      "facilities": ["攀石", "顶绳", "先锋", "健身房"],
+      "color": "#43A047",
+      "notes": "VauxWall 连锁"
+    },
+    {
+      "id": "stronghold",
+      "name": "Stronghold",
+      "peakPrice": "£17",
+      "offPeakPrice": "£14",
+      "monthlyPrice": "£58/月",
+      "punchcardPrice": "£115/10次",
+      "discount": "学生 £14",
+      "discountTimes": "周一至周五 14:00 前入场 £12",
+      "facilities": ["攀石", "顶绳", "先锋", "健身房"],
+      "color": "#8E24AA",
+      "notes": "工业风装修，空间大"
+    },
+    {
+      "id": "castle",
+      "name": "The Castle",
+      "peakPrice": "£18.50",
+      "offPeakPrice": "£14",
+      "monthlyPrice": "£59/月",
+      "punchcardPrice": "£130/10次",
+      "discount": "学生证 8 折",
+      "discountTimes": "周一至周五 10:00-17:00 入场 £12",
+      "facilities": ["攀石", "顶绳", "先锋", "健身房"],
+      "color": "#1E88E5",
+      "notes": "伦敦最老牌攀岩馆"
+    }
+  ]
+}
