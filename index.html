@@ -2355,6 +2355,14 @@
         if (index !== -1) {
           brandsData.brands[index] = brandData;
         }
+
+        // 询问是否更新所有该品牌的岩馆
+        const brandGyms = gymsData.gyms.filter(g => g.brandId === editingBrandId);
+        if (brandGyms.length > 0) {
+          if (confirm(`是否将品牌信息同步更新到该品牌下的 ${brandGyms.length} 家场馆？\n\n将更新：价格、折扣、设施等信息`)) {
+            updateGymsWithBrand(editingBrandId, brandData);
+          }
+        }
       } else {
         brandsData.brands.push(brandData);
       }
@@ -2364,6 +2372,29 @@
       renderBrandList();
       renderMarkers(); // 更新地图上的品牌颜色和标签
       closeBrandEditor();
+    }
+
+    // 更新所有该品牌的岩馆
+    function updateGymsWithBrand(brandId, brandData) {
+      let updateCount = 0;
+      gymsData.gyms.forEach(gym => {
+        if (gym.brandId === brandId) {
+          // 更新价格信息
+          gym.peakPrice = brandData.peakPrice;
+          gym.offPeakPrice = brandData.offPeakPrice;
+          gym.monthlyPrice = brandData.monthlyPrice;
+          gym.punchcardPrice = brandData.punchcardPrice;
+          gym.discount = brandData.discount;
+          gym.discountTimes = brandData.discountTimes;
+          gym.facilities = [...brandData.facilities]; // 复制设施数组
+          gym.notes = brandData.notes;
+          updateCount++;
+        }
+      });
+
+      saveData();
+      renderMarkers();
+      alert(`已更新 ${updateCount} 家场馆的信息`);
     }
 
     function deleteBrand(brandId) {
