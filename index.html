@@ -2350,6 +2350,10 @@
         notes: document.getElementById('brandNotes').value.trim()
       };
 
+      // 调试：显示品牌ID和编辑状态
+      console.log('保存品牌 - editingBrandId:', editingBrandId);
+      console.log('保存品牌 - brandData:', brandData);
+
       if (editingBrandId) {
         const index = brandsData.brands.findIndex(b => b.id === editingBrandId);
         if (index !== -1) {
@@ -2358,6 +2362,9 @@
 
         // 询问是否更新所有该品牌的岩馆
         const brandGyms = gymsData.gyms.filter(g => g.brandId === editingBrandId);
+        console.log('该品牌下的场馆数量:', brandGyms.length);
+        console.log('该品牌下的场馆:', brandGyms);
+
         if (brandGyms.length > 0) {
           if (confirm(`是否将品牌信息同步更新到该品牌下的 ${brandGyms.length} 家场馆？\n\n将更新：价格、折扣、设施等信息`)) {
             updateGymsWithBrand(editingBrandId, brandData);
@@ -2376,9 +2383,13 @@
 
     // 更新所有该品牌的岩馆
     function updateGymsWithBrand(brandId, brandData) {
+      console.log('开始更新场馆 - brandId:', brandId);
+      console.log('开始更新场馆 - brandData:', brandData);
+
       let updateCount = 0;
       gymsData.gyms.forEach(gym => {
         if (gym.brandId === brandId) {
+          console.log('更新场馆:', gym.name);
           // 更新价格信息
           gym.peakPrice = brandData.peakPrice;
           gym.offPeakPrice = brandData.offPeakPrice;
@@ -2391,6 +2402,8 @@
           updateCount++;
         }
       });
+
+      console.log('更新的场馆数量:', updateCount);
 
       saveData();
       renderMarkers();
