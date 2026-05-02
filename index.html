@@ -1660,6 +1660,11 @@
       const brand = brandsData.brands.find(b => b.id === brandId);
       if (!brand) return;
 
+      // 如果是编辑模式，不自动填充模板（保留原有数据）
+      if (editingGymId) {
+        return;
+      }
+
       // 检查是否已有设施选择
       const hasExistingFacilities = document.querySelectorAll('.checkbox-group input:checked').length > 0;
 
@@ -1928,7 +1933,6 @@
       document.getElementById('modalTitle').textContent = '编辑场馆';
 
       document.getElementById('gymName').value = gym.name || '';
-      document.getElementById('gymBrand').value = gym.brandId || '';
       document.getElementById('gymAddress').value = gym.address || '';
       document.getElementById('gymAddressSearch').value = gym.address.split(',').slice(0, 3).join(', ') || '';
       document.getElementById('gymLat').value = gym.lat || '';
@@ -1943,10 +1947,14 @@
       document.getElementById('gymVisitCount').value = gym.visitCount || 0;
       document.getElementById('gymNotes').value = gym.notes || '';
 
-      // 设置设施复选框
+      // 设置设施复选框（在设置品牌之前）
       document.querySelectorAll('.checkbox-group input').forEach(cb => {
         cb.checked = gym.facilities && gym.facilities.includes(cb.value);
       });
+
+      // 最后设置品牌（避免触发 onchange 覆盖设施选择）
+      const brandSelect = document.getElementById('gymBrand');
+      brandSelect.value = gym.brandId || '';
 
       const modal = document.getElementById('gymModal');
       modal.classList.add('active');
