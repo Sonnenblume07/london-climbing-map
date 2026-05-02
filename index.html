@@ -1266,6 +1266,11 @@
       </div>
 
       <div class="form-group">
+        <label>Off-Peak Time</label>
+        <input type="text" id="gymOffPeakTime" placeholder="例如：Mon-Fri 10:00-17:00">
+      </div>
+
+      <div class="form-group">
         <label>设施</label>
         <div class="checkbox-group" id="gymFacilities">
           <label><input type="checkbox" value="攀石"> 攀石</label>
@@ -1348,6 +1353,11 @@
       <div class="form-group">
         <label>优惠时段</label>
         <input type="text" id="brandDiscountTimes" placeholder="例如：工作日 12:00 前入场 £11">
+      </div>
+
+      <div class="form-group">
+        <label>Off-Peak Time</label>
+        <input type="text" id="brandOffPeakTime" placeholder="例如：Mon-Fri 10:00-17:00">
       </div>
 
       <div class="form-group">
@@ -1537,6 +1547,7 @@
             <tr><td>单次价格</td><td>${singlePriceDisplay}</td></tr>
             <tr><td>会员费用</td><td>${membershipDisplay}</td></tr>
             ${gym.discount ? `<tr><td>折扣</td><td>${gym.discount}</td></tr>` : ''}
+            ${gym.offPeakTime ? `<tr><td>Off-Peak</td><td>${gym.offPeakTime}</td></tr>` : ''}
           </table>
 
           ${gym.discountTimes ? `<div class="discount">优惠: ${gym.discountTimes}</div>` : ''}
@@ -1689,6 +1700,7 @@
       document.getElementById('gymPunchcardPrice').value = brand.punchcardPrice || '';
       document.getElementById('gymDiscount').value = brand.discount || '';
       document.getElementById('gymDiscountTimes').value = brand.discountTimes || '';
+      document.getElementById('gymOffPeakTime').value = brand.offPeakTime || '';
       document.getElementById('gymNotes').value = brand.notes || '';
 
       // 只有在没有已选设施时才应用品牌的设施
@@ -1958,6 +1970,7 @@
       document.getElementById('gymPunchcardPrice').value = gym.punchcardPrice || '';
       document.getElementById('gymDiscount').value = gym.discount || '';
       document.getElementById('gymDiscountTimes').value = gym.discountTimes || '';
+      document.getElementById('gymOffPeakTime').value = gym.offPeakTime || '';
       document.getElementById('gymVisitCount').value = gym.visitCount || 0;
       document.getElementById('gymNotes').value = gym.notes || '';
 
@@ -1998,6 +2011,9 @@
       document.getElementById('gymOffPeakPrice').value = '';
       document.getElementById('gymMonthlyPrice').value = '';
       document.getElementById('gymPunchcardPrice').value = '';
+      document.getElementById('gymDiscount').value = '';
+      document.getElementById('gymDiscountTimes').value = '';
+      document.getElementById('gymOffPeakTime').value = '';
       document.getElementById('gymVisitCount').value = 0;
       document.getElementById('gymNotes').value = '';
       document.querySelectorAll('#gymFacilities input').forEach(cb => cb.checked = false);
@@ -2061,6 +2077,7 @@
         punchcardPrice: document.getElementById('gymPunchcardPrice').value.trim(),
         discount: document.getElementById('gymDiscount').value.trim(),
         discountTimes: document.getElementById('gymDiscountTimes').value.trim(),
+        offPeakTime: document.getElementById('gymOffPeakTime').value.trim(),
         facilities,
         visitCount: parseInt(document.getElementById('gymVisitCount').value) || 0,
         notes: document.getElementById('gymNotes').value.trim()
@@ -2284,6 +2301,7 @@
       document.getElementById('brandPunchcardPrice').value = brand.punchcardPrice || '';
       document.getElementById('brandDiscount').value = brand.discount || '';
       document.getElementById('brandDiscountTimes').value = brand.discountTimes || '';
+      document.getElementById('brandOffPeakTime').value = brand.offPeakTime || '';
       document.getElementById('brandNotes').value = brand.notes || '';
 
       // 设置设施复选框
@@ -2304,10 +2322,13 @@
       document.getElementById('brandName').value = '';
       document.getElementById('brandColor').value = '#ff5722';
       document.getElementById('brandColorPicker').value = '#ff5722';
-      document.getElementById('brandSinglePrice').value = '';
-      document.getElementById('brandMembershipPrice').value = '';
-      document.getElementById('brandStudentDiscount').value = '';
+      document.getElementById('brandPeakPrice').value = '';
+      document.getElementById('brandOffPeakPrice').value = '';
+      document.getElementById('brandMonthlyPrice').value = '';
+      document.getElementById('brandPunchcardPrice').value = '';
+      document.getElementById('brandDiscount').value = '';
       document.getElementById('brandDiscountTimes').value = '';
+      document.getElementById('brandOffPeakTime').value = '';
       document.getElementById('brandNotes').value = '';
       document.querySelectorAll('#brandFacilities input').forEach(cb => cb.checked = false);
     }
@@ -2346,6 +2367,7 @@
         punchcardPrice: document.getElementById('brandPunchcardPrice').value.trim(),
         discount: document.getElementById('brandDiscount').value.trim(),
         discountTimes: document.getElementById('brandDiscountTimes').value.trim(),
+        offPeakTime: document.getElementById('brandOffPeakTime').value.trim(),
         facilities,
         notes: document.getElementById('brandNotes').value.trim()
       };
@@ -2397,6 +2419,7 @@
           gym.punchcardPrice = brandData.punchcardPrice;
           gym.discount = brandData.discount;
           gym.discountTimes = brandData.discountTimes;
+          gym.offPeakTime = brandData.offPeakTime;
           gym.facilities = [...brandData.facilities]; // 复制设施数组
           gym.notes = brandData.notes;
           updateCount++;
