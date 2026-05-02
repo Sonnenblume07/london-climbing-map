@@ -1267,7 +1267,7 @@
 
       <div class="form-group">
         <label>设施</label>
-        <div class="checkbox-group">
+        <div class="checkbox-group" id="gymFacilities">
           <label><input type="checkbox" value="攀石"> 攀石</label>
           <label><input type="checkbox" value="顶绳"> 顶绳</label>
           <label><input type="checkbox" value="先锋"> 先锋</label>
@@ -1484,11 +1484,29 @@
       return facilities.map(f => `<span class="facility-tag">${f}</span>`).join('');
     }
 
-    // 简化地址显示 - 只显示前5个部分
+    // 简化地址显示 - 智能简化
     function simplifyAddress(address) {
       if (!address) return '';
+
       const parts = address.split(',');
-      return parts.slice(0, 5).join(', ');
+
+      // 如果地址部分少于等于5个，直接返回
+      if (parts.length <= 5) {
+        return address.trim();
+      }
+
+      // 如果地址很长，尝试智能简化
+      // 移除邮政编码部分（通常是最后包含数字和字母的部分）
+      const simplified = [];
+      for (let i = 0; i < Math.min(parts.length, 5); i++) {
+        const part = parts[i].trim();
+        // 跳过空的或只包含邮政编码的部分
+        if (part && !part.match(/^[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}$/i)) {
+          simplified.push(part);
+        }
+      }
+
+      return simplified.join(', ');
     }
 
     // 创建弹出框内容
@@ -1666,7 +1684,7 @@
       }
 
       // 检查是否已有设施选择
-      const hasExistingFacilities = document.querySelectorAll('.checkbox-group input:checked').length > 0;
+      const hasExistingFacilities = document.querySelectorAll('#gymFacilities input:checked').length > 0;
 
       // 填充模板数据
       document.getElementById('gymPeakPrice').value = brand.peakPrice || '';
@@ -1679,7 +1697,7 @@
 
       // 只有在没有已选设施时才应用品牌的设施
       if (!hasExistingFacilities && brand.facilities) {
-        document.querySelectorAll('.checkbox-group input').forEach(cb => {
+        document.querySelectorAll('#gymFacilities input').forEach(cb => {
           cb.checked = brand.facilities.includes(cb.value);
         });
       }
@@ -1948,13 +1966,13 @@
       document.getElementById('gymNotes').value = gym.notes || '';
 
       // 设置设施复选框（在设置品牌之前）
-      document.querySelectorAll('.checkbox-group input').forEach(cb => {
+      document.querySelectorAll('#gymFacilities input').forEach(cb => {
         cb.checked = gym.facilities && gym.facilities.includes(cb.value);
       });
 
       // 调试：显示加载的设施数据
       console.log('编辑场馆 - 原始设施:', gym.facilities);
-      console.log('编辑场馆 - 复选框状态:', document.querySelectorAll('.checkbox-group input:checked').length);
+      console.log('编辑场馆 - 复选框状态:', document.querySelectorAll('#gymFacilities input:checked').length);
 
       // 最后设置品牌（避免触发 onchange 覆盖设施选择）
       const brandSelect = document.getElementById('gymBrand');
@@ -1986,7 +2004,7 @@
       document.getElementById('gymPunchcardPrice').value = '';
       document.getElementById('gymVisitCount').value = 0;
       document.getElementById('gymNotes').value = '';
-      document.querySelectorAll('.checkbox-group input').forEach(cb => cb.checked = false);
+      document.querySelectorAll('#gymFacilities input').forEach(cb => cb.checked = false);
 
       if (tempMarker) {
         map.removeLayer(tempMarker);
@@ -2026,13 +2044,13 @@
       }
 
       const facilities = [];
-      document.querySelectorAll('.checkbox-group input:checked').forEach(cb => {
+      document.querySelectorAll('#gymFacilities input:checked').forEach(cb => {
         facilities.push(cb.value);
       });
 
       // 调试：显示设施数据
       console.log('保存的设施:', facilities);
-      console.log('复选框状态:', document.querySelectorAll('.checkbox-group input'));
+      console.log('复选框状态:', document.querySelectorAll('#gymFacilities input'));
 
       const gymData = {
         id: editingGymId || Date.now(),
