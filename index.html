@@ -1484,6 +1484,13 @@
       return facilities.map(f => `<span class="facility-tag">${f}</span>`).join('');
     }
 
+    // 简化地址显示 - 只显示前5个部分
+    function simplifyAddress(address) {
+      if (!address) return '';
+      const parts = address.split(',');
+      return parts.slice(0, 5).join(', ');
+    }
+
     // 创建弹出框内容
     function createPopupContent(gym) {
       const brand = gym.brandId ? brandsData.brands.find(b => b.id === gym.brandId) : null;
@@ -1510,7 +1517,7 @@
         <div class="gym-popup">
           ${brandHtml}
           <h2>${gym.name}</h2>
-          <div class="address">${gym.address}</div>
+          <div class="address">${simplifyAddress(gym.address)}</div>
 
           <table>
             <tr><td>单次价格</td><td>${singlePriceDisplay}</td></tr>
@@ -1643,6 +1650,9 @@
       const brand = brandsData.brands.find(b => b.id === brandId);
       if (!brand) return;
 
+      // 检查是否已有设施选择
+      const hasExistingFacilities = document.querySelectorAll('.checkbox-group input:checked').length > 0;
+
       // 填充模板数据
       document.getElementById('gymPeakPrice').value = brand.peakPrice || '';
       document.getElementById('gymOffPeakPrice').value = brand.offPeakPrice || '';
@@ -1652,10 +1662,12 @@
       document.getElementById('gymDiscountTimes').value = brand.discountTimes || '';
       document.getElementById('gymNotes').value = brand.notes || '';
 
-      // 设置设施
-      document.querySelectorAll('.checkbox-group input').forEach(cb => {
-        cb.checked = brand.facilities && brand.facilities.includes(cb.value);
-      });
+      // 只有在没有已选设施时才应用品牌的设施
+      if (!hasExistingFacilities && brand.facilities) {
+        document.querySelectorAll('.checkbox-group input').forEach(cb => {
+          cb.checked = brand.facilities.includes(cb.value);
+        });
+      }
     }
 
     // 保存数据到 localStorage
