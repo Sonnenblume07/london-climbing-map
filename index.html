@@ -1573,6 +1573,11 @@
 
     // 加载数据
     function loadData() {
+      // 确保 brandsData 已初始化
+      if (typeof brandsData === 'undefined') {
+        brandsData = { brands: [] };
+      }
+
       // 先加载品牌数据
       const savedBrands = localStorage.getItem('climbingBrands');
       if (savedBrands) {
@@ -1589,6 +1594,11 @@
           .catch(err => {
             console.error('加载品牌数据失败:', err);
           });
+      }
+
+      // 确保 gymsData 已初始化
+      if (typeof gymsData === 'undefined') {
+        gymsData = { gyms: [] };
       }
 
       // 再加载场馆数据
@@ -1693,6 +1703,12 @@
 
     // 初始化地图
     function initializeMap() {
+      // 检查 map 是否已定义
+      if (typeof map === 'undefined') {
+        console.error('Map not initialized');
+        return;
+      }
+
       // 设置地图选项，优化视觉效果
       map.on('load', function() {
         // 添加地图加载完成的动画
@@ -1701,13 +1717,17 @@
         // 淡入动画
         setTimeout(() => {
           const mapElement = document.getElementById('map');
-          mapElement.style.transition = 'opacity 0.5s ease';
-          mapElement.style.opacity = '1';
+          if (mapElement) {
+            mapElement.style.transition = 'opacity 0.5s ease';
+            mapElement.style.opacity = '1';
+          }
         }, 100);
       });
 
       // 设置地图缩放和拖拽动画
-      map.zoomControl.setPosition('topright');
+      if (map.zoomControl) {
+        map.zoomControl.setPosition('topright');
+      }
 
       // 优化地图交互
       map.options.zoomAnimation = true;
@@ -1715,7 +1735,9 @@
       map.options.markerZoomAnimation = true;
 
       // 验证地图尺寸
-      map.invalidateSize();
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
     }
 
     // 保存打卡数据
