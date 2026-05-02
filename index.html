@@ -1952,6 +1952,10 @@
         cb.checked = gym.facilities && gym.facilities.includes(cb.value);
       });
 
+      // 调试：显示加载的设施数据
+      console.log('编辑场馆 - 原始设施:', gym.facilities);
+      console.log('编辑场馆 - 复选框状态:', document.querySelectorAll('.checkbox-group input:checked').length);
+
       // 最后设置品牌（避免触发 onchange 覆盖设施选择）
       const brandSelect = document.getElementById('gymBrand');
       brandSelect.value = gym.brandId || '';
@@ -2026,11 +2030,15 @@
         facilities.push(cb.value);
       });
 
+      // 调试：显示设施数据
+      console.log('保存的设施:', facilities);
+      console.log('复选框状态:', document.querySelectorAll('.checkbox-group input'));
+
       const gymData = {
         id: editingGymId || Date.now(),
         name,
         brandId,
-        address: address || '未填写地址',
+        address: simplifyAddress(address) || '未填写地址',
         lat,
         lng,
         peakPrice: document.getElementById('gymPeakPrice').value.trim(),
