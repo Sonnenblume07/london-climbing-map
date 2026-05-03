@@ -1479,7 +1479,7 @@
     });
 
     // 创建标记图标
-    function createMarkerIcon(visitCount, color = '#ff5722') {
+    function createMarkerIcon(visitCount, color = '#00695C') {
       return L.divIcon({
         className: 'custom-marker',
         html: `<div class="climbing-marker" style="background: ${color}">${visitCount}</div>`,
@@ -1576,7 +1576,7 @@
 
       gymsData.gyms.forEach((gym, index) => {
         const brand = gym.brandId ? brandsData.brands.find(b => b.id === gym.brandId) : null;
-        const color = brand ? brand.color : '#ff5722';
+        const color = brand ? brand.color : '#00695C'; // 独立岩馆使用深青色
 
         const marker = L.marker([gym.lat, gym.lng], {
           icon: createMarkerIcon(gym.visitCount, color)
