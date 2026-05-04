@@ -1396,8 +1396,11 @@
           </select>
         </div>
         <div class="form-group" style="flex: 1;">
-          <label>日期</label>
-          <input type="date" id="checkinFilterDate" onchange="filterCheckinHistory()">
+          <label>排序</label>
+          <select id="checkinSortOrder" onchange="filterCheckinHistory()">
+            <option value="desc">最新优先</option>
+            <option value="asc">最早优先</option>
+          </select>
         </div>
       </div>
 
@@ -1841,19 +1844,21 @@
     function renderCheckinHistory() {
       const historyDiv = document.getElementById('checkinHistory');
       const filterGym = document.getElementById('checkinFilterGym').value;
-      const filterDate = document.getElementById('checkinFilterDate').value;
+      const sortOrder = document.getElementById('checkinSortOrder').value;
 
-      let filteredCheckins = checkinsData.checkins;
+      let filteredCheckins = [...checkinsData.checkins];
 
       // 按场馆筛选
       if (filterGym) {
         filteredCheckins = filteredCheckins.filter(c => c.gymId == filterGym);
       }
 
-      // 按日期筛选
-      if (filterDate) {
-        filteredCheckins = filteredCheckins.filter(c => c.date === filterDate);
-      }
+      // 按日期排序
+      filteredCheckins.sort((a, b) => {
+        const dateA = new Date(a.date);
+        const dateB = new Date(b.date);
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
 
       if (filteredCheckins.length === 0) {
         historyDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无打卡记录</div>';
